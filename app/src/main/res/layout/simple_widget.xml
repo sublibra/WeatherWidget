@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:padding="8dp"
+        android:background="#55000000"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+
+            <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@drawable/temperature"/>
+
+            <TextView
+            android:id="@+id/temperature"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="000"
+            android:textSize="@dimen/abc_text_size_large_material"
+            android:textStyle="bold"/>
+
+            <ImageView
+            android:id="@+id/imgHumidity"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@drawable/humidity"/>
+
+            <TextView
+            android:id="@+id/humidity"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="000"
+            android:textSize="@dimen/abc_text_size_large_material"
+            android:textStyle="bold"/>
+
+            <ImageButton
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:id="@+id/refresh"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1"
+                android:background="@drawable/refresh"
+                android:clickable="true"
+                android:adjustViewBounds="false">
+            </ImageButton>
+
+        </LinearLayout>
+
+    <TextView
+        android:text="TextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:id="@+id/updateDate"
+        android:layout_weight="0.05"
+        android:textSize="10sp"
+        android:textAlignment="textEnd" />
+
+</LinearLayout>
+
+
+
+
