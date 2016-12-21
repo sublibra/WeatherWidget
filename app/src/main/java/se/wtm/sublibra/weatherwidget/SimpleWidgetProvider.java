@@ -97,17 +97,19 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         }// onPostExecute displays the results of the AsyncTask.
         @Override
         protected void onPostExecute(WeatherData result) {
-            Log.d(TAG, "Content: " + result.toString());
             for (int widgetId: widgetIds){
                 AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(theContext);
                 RemoteViews remoteViews = new RemoteViews(theContext.getPackageName(),R.layout.simple_widget);
-                if (result != null){
+                if (result != null && result.getErrorMessage() == null){
+                    Log.d(TAG, "Content: " + result.toString());
                     remoteViews.setTextViewText(R.id.temperature, Double.toString(result.getTemperature()) + "\u2103");
                     remoteViews.setTextViewText(R.id.humidity, Integer.toString(result.getHumidity()) + "%");
                     remoteViews.setTextViewText(R.id.updateDate, result.getLastUpdatedString());
                 } else {
-                    remoteViews.setTextViewText(R.id.temperature, "err");
-                    remoteViews.setTextViewText(R.id.humidity, "err");
+                    Log.d(TAG, "Error received: " + result.toString());
+                    remoteViews.setTextViewText(R.id.temperature, "N/A");
+                    remoteViews.setTextViewText(R.id.humidity, "N/A");
+                    remoteViews.setTextViewText(R.id.updateDate, result.getErrorMessage());
                 }
                 appWidgetManager.partiallyUpdateAppWidget(widgetId, remoteViews);
             }
@@ -160,38 +162,42 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
             try {
                 JSONObject jsonObj = new JSONObject(new String(buffer));
 
-                String lastUpdateDate = jsonObj.getString("lastUpdated");
-                wd.setLastUpdated(Long.parseLong(lastUpdateDate));
-                Log.d(TAG, "lastUpdatedDate:" + lastUpdateDate);
+                // Check if we have a valid sensor. i.e. it contains the data node
+                if(jsonObj.has("data")) {
+                    String lastUpdateDate = jsonObj.getString("lastUpdated");
+                    wd.setLastUpdated(Long.parseLong(lastUpdateDate));
+                    Log.d(TAG, "lastUpdatedDate:" + lastUpdateDate);
 
-                // Get json "data" array
-                JSONArray data = jsonObj.getJSONArray("data");
+                    // Get json "data" array
+                    JSONArray data = jsonObj.getJSONArray("data");
 
-                for (int i = 0; i < data.length(); i++) {
-                    JSONObject c = data.getJSONObject(i);
-                    String name = c.getString("name");
-                    switch (name) {
-                        case "temp":
-                            wd.setTemperature(Double.parseDouble(c.getString("value")));
-                            Log.d(TAG, "temp: " + c.getString("value"));
-                            break;
-                        case "humidity":
-                            wd.setHumidity(Integer.parseInt(c.getString("value")));
-                            Log.d(TAG, "humidity: " + c.getString("value"));
-                            break;
-                        default:
-                            wd = null;
-                            break;
+                    for (int i = 0; i < data.length(); i++) {
+                        JSONObject c = data.getJSONObject(i);
+                        String name = c.getString("name");
+                        switch (name) {
+                            case "temp":
+                                wd.setTemperature(Double.parseDouble(c.getString("value")));
+                                Log.d(TAG, "temp: " + c.getString("value"));
+                                break;
+                            case "humidity":
+                                wd.setHumidity(Integer.parseInt(c.getString("value")));
+                                Log.d(TAG, "humidity: " + c.getString("value"));
+                                break;
+                            default:
+                                wd = null;
+                                break;
+                        }
                     }
+                } else {
+                   Log.d(TAG, "error: " + jsonObj.getString("error"));
+                   wd.setErrorMessage(jsonObj.getString("error"));
                 }
             } catch (JSONException e) {
-                e.printStackTrace();
                 Log.d(TAG, e.getMessage());
-                return null;
+                wd.setErrorMessage("Could not parse the sensor reply (json)");
             } catch (NullPointerException e){
-                e.printStackTrace();
                 Log.d(TAG, e.getMessage());
-                return null;
+                wd.setErrorMessage("No response from the sensor server");
             }
             return wd;
         }

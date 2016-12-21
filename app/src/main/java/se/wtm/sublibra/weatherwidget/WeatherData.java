@@ -11,6 +11,7 @@ public class WeatherData {
     private double temperature;
     private int humidity;
     private long lastUpdated=0;
+    private String errorMessage;
 
     public WeatherData() {
 
@@ -54,6 +55,18 @@ public class WeatherData {
 
     public void setLastUpdated(long lastUpdated) {
         this.lastUpdated = lastUpdated;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    /**
+     * Set an error message, typically when the sensor is not found, garbled json etc.
+     * @param errorMessage descriptive error message (no translation in this version)
+     */
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 
     public String toString(){
