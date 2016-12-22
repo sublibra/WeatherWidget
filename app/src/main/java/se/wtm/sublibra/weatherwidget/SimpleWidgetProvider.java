@@ -142,8 +142,7 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                 // Makes sure that the InputStream is closed after the app is
                 // finished using it.
             } catch (SocketTimeoutException e) {
-                is.close();
-                return null;
+                return new WeatherData("Could not contact server. Socket timeout");
             } finally {
                 if (is != null) {
                     is.close();
@@ -152,14 +151,13 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         }
 
         // Reads an InputStream and parse jsondata
-        public WeatherData parseWeatherData(InputStream stream, int len) throws IOException, UnsupportedEncodingException {
+        public WeatherData parseWeatherData(InputStream stream, int len){
             Reader reader = null;
-            reader = new InputStreamReader(stream, "UTF-8");
-            char[] buffer = new char[len];
-            reader.read(buffer);
             WeatherData wd = new WeatherData();
-
             try {
+                reader = new InputStreamReader(stream, "UTF-8");
+                char[] buffer = new char[len];
+                reader.read(buffer);
                 JSONObject jsonObj = new JSONObject(new String(buffer));
 
                 // Check if we have a valid sensor. i.e. it contains the data node
@@ -192,7 +190,7 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                    Log.d(TAG, "error: " + jsonObj.getString("error"));
                    wd.setErrorMessage(jsonObj.getString("error"));
                 }
-            } catch (JSONException e) {
+            } catch (JSONException|IOException e) {
                 Log.d(TAG, e.getMessage());
                 wd.setErrorMessage("Could not parse the sensor reply (json)");
             } catch (NullPointerException e){

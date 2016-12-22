@@ -17,6 +17,10 @@ public class WeatherData {
 
     }
 
+    public WeatherData(String errorMessage){
+        this.errorMessage = errorMessage;
+    }
+
     public WeatherData(int humidity, double temperature, long lastUpdated) {
         this.humidity = humidity;
         this.temperature = temperature;
