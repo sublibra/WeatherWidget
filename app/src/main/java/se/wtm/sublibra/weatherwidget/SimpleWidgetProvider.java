@@ -80,21 +80,12 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                 RemoteViews remoteViews = new RemoteViews(theContext.getPackageName(),R.layout.simple_widget);
                 remoteViews.setTextViewText(R.id.temperature,"\u27F3");
                 remoteViews.setTextViewText(R.id.humidity,"\u27F3");
-                remoteViews.setTextViewText(R.id.updateDate,"Waiting for update");
+                remoteViews.setTextViewText(R.id.status,"Waiting for update");
                 appWidgetManager.partiallyUpdateAppWidget(widgetId, remoteViews);
             }
         }
 
-        @Override
-        protected WeatherData doInBackground(String... urls) {
-            // params comes from the execute() call: params[0] is the url.
-            try {
-                return downloadUrl(urls[0]);
-            } catch (IOException e) {
-                Log.d(TAG, "Unable to retrieve web page. URL may be invalid.");
-                return null;
-            }
-        }// onPostExecute displays the results of the AsyncTask.
+        // onPostExecute displays the results of the AsyncTask.
         @Override
         protected void onPostExecute(WeatherData result) {
             for (int widgetId: widgetIds){
@@ -104,26 +95,48 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                     Log.d(TAG, "Content: " + result.toString());
                     remoteViews.setTextViewText(R.id.temperature, Double.toString(result.getTemperature()) + "\u2103");
                     remoteViews.setTextViewText(R.id.humidity, Integer.toString(result.getHumidity()) + "%");
-                    remoteViews.setTextViewText(R.id.updateDate, result.getLastUpdatedString());
+                    remoteViews.setTextViewText(R.id.status, result.getLastUpdatedString());
                 } else {
                     Log.d(TAG, "Error received: " + result.toString());
                     remoteViews.setTextViewText(R.id.temperature, "N/A");
                     remoteViews.setTextViewText(R.id.humidity, "N/A");
-                    remoteViews.setTextViewText(R.id.updateDate, result.getErrorMessage());
+                    remoteViews.setTextViewText(R.id.status, result.getErrorMessage());
                 }
                 appWidgetManager.partiallyUpdateAppWidget(widgetId, remoteViews);
             }
         }
 
-        // Given a URL, establishes an HttpUrlConnection and retrieves
-        // the web page content as a InputStream, which it returns as
-        // a string.
-        private WeatherData downloadUrl(String myurl) throws IOException {
-            InputStream is = null;
-            // Only display the first 500 characters of the retrieved
-            // web page content.
-            int len = 500;
+        @Override
+        protected WeatherData doInBackground(String... urls) {
+            // params comes from the execute() call: params[0] is the url.
+            try {
+                String sensorData = downloadUrl(urls[0]);
+                if (sensorData != null) {
+                    return parseWeatherData(sensorData);
+                } else {
+                    return new WeatherData("Invalid response from server");
+                }
+            } catch (SocketTimeoutException e){
+                Log.d(TAG, "Could not contact server. Socket timeout" + e.getMessage());
+                return new WeatherData("Could not contact server. Socket timeout");
+            } catch (IOException e) {
+                Log.d(TAG, "Unable to retrieve web page. URL may be invalid." + e.getMessage());
+                return null;
+            }
+        }
 
+        /**
+         * Given a URL, establishes an HttpUrlConnection and retrieves the data as a string
+         * response limited to 500 characters since sensor input is short
+         * @param myurl
+         * @return sensor data as string
+         * @throws IOException
+         * @throws SocketTimeoutException
+         */
+        private String downloadUrl(String myurl) throws IOException, SocketTimeoutException {
+            int len = 500; // only read 500 first chars
+            InputStream is = null;
+            Reader reader = null;
             try {
                 URL url = new URL(myurl);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -131,34 +144,32 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                 conn.setConnectTimeout(15000 /* milliseconds */);
                 conn.setRequestMethod("GET");
                 conn.setDoInput(true);
-                // Starts the query
                 conn.connect();
                 int response = conn.getResponseCode();
-                Log.d(TAG, "The response is: " + response);
+                Log.d(TAG, "HTTP response is: " + response);
                 is = conn.getInputStream();
-
-                return parseWeatherData(is, len);
-
+                reader = new InputStreamReader(is, "UTF-8");
+                char[] buffer = new char[len];
+                reader.read(buffer);
+                return new String(buffer);
+            } finally {
                 // Makes sure that the InputStream is closed after the app is
                 // finished using it.
-            } catch (SocketTimeoutException e) {
-                return new WeatherData("Could not contact server. Socket timeout");
-            } finally {
                 if (is != null) {
                     is.close();
                 }
             }
         }
 
-        // Reads an InputStream and parse jsondata
-        public WeatherData parseWeatherData(InputStream stream, int len){
-            Reader reader = null;
+        /**
+         * Parse the json data returned from the server
+         * @param sensorData data returned from the server as json
+         * @return WeatherData object containing the sensor data or an error message
+         */
+        private WeatherData parseWeatherData(String sensorData){
             WeatherData wd = new WeatherData();
             try {
-                reader = new InputStreamReader(stream, "UTF-8");
-                char[] buffer = new char[len];
-                reader.read(buffer);
-                JSONObject jsonObj = new JSONObject(new String(buffer));
+                  JSONObject jsonObj = new JSONObject(new String(sensorData));
 
                 // Check if we have a valid sensor. i.e. it contains the data node
                 if(jsonObj.has("data")) {
@@ -190,7 +201,7 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                    Log.d(TAG, "error: " + jsonObj.getString("error"));
                    wd.setErrorMessage(jsonObj.getString("error"));
                 }
-            } catch (JSONException|IOException e) {
+            } catch (JSONException e) {
                 Log.d(TAG, e.getMessage());
                 wd.setErrorMessage("Could not parse the sensor reply (json)");
             } catch (NullPointerException e){
@@ -199,6 +210,5 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
             }
             return wd;
         }
-
     }
 }

@@ -76,6 +76,7 @@ public class WeatherData {
     public String toString(){
         return Double.toString(temperature)
                 + ":" + Integer.toString(humidity)
-                + " timestamp:" + getLastUpdatedString();
+                + " timestamp:" + getLastUpdatedString()
+                + " error: " + getErrorMessage();
     }
 }
